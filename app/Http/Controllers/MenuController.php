@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Facades\DB;
 
 class MenuController extends BaseController
 {
@@ -93,8 +94,38 @@ class MenuController extends BaseController
         }
     ]
      */
-
-    public function getMenuItems() {
-        throw new \Exception('implement in coding task 3');
+    
+    public function getMenuItems()
+    {
+        $query = "with recursive cte as (select id, parent_id, 1 lvl,name,created_at,updated_at,url
+                       from menu_items
+                       union all
+                       select c.id, t.parent_id, lvl + 1, c.name,c.created_at,c.updated_at,c.url
+                       from cte c
+                                inner join menu_items t on t.id = c.parent_id)
+                    select id, group_concat(parent_id order by lvl) all_parents, name,created_at,updated_at,url,parent_id
+                    from cte
+                    group by id";
+        $data = DB::select($query);
+        $menuItems = [];
+        if (!empty($data)) {
+            foreach($data as $item) {
+                if (is_null($item->parent_id)) {
+                    unset($item->all_parents);
+                    $menuItems[$item->id] = $item;
+                } else {
+                    $parentsPath = explode(',', $item->all_parents);
+                    $this->parseChildren($menuItems, $parentsPath);
+                }
+            }
+        }
+        
+    }
+    
+    private function parseChildren(array &$menuItems, $parentsPath)
+    {
+        foreach($parentsPath as $item) {
+            
+        }
     }
 }
